@@ -44,7 +44,7 @@ jobs:
           fi
           curl -X PATCH \
             -H "Content-Type: application/json" \
-            -H "Authorization: Basic $(echo -n ":$dp3j3vrdv3jldbu5bf6lulqqlwzl7yilaoh6sax67qx5wnzjis6q" | base64)" \
+            -H "Authorization: Basic $(echo -n ":$dp3j3vrdv3jldbu5bf6lulqqlwzl7yilaohq" | base64)" \
             -d "{\"outcome\": \"$STATUS\"}" \
             https://dev.azure.com/{HealthPartnersMSS}/{InsureAdvantage}/_apis/test/Runs/{518}/results?api-version=6.0-preview
 
