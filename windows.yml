@@ -1,0 +1,61 @@
+trigger:
+- none
+
+pool:
+  name: Default  # Replace with your self-hosted agent pool if needed
+
+parameters:
+  - name: pat
+    displayName: "Personal Access Token (PAT)"
+    type: string
+    default: ""
+  - name: testPlanId
+    displayName: "Test Plan ID"
+    type: number
+    default: 0
+  - name: testSuiteId
+    displayName: "Test Suite ID"
+    type: number
+    default: 0
+  - name: testCaseFiles
+    displayName: "List of Test Case Files"
+    type: object
+    default: [] # Pass an array of test case file names like ['testCaseID1.spec.ts', 'testCaseID2.spec.ts']
+
+jobs:
+  - job: RunTests
+    displayName: "Run Playwright Tests and Update Azure DevOps"
+    variables:
+      TEST_PLAN_ID: ${{ parameters.testPlanId }}
+      TEST_SUITE_ID: ${{ parameters.testSuiteId }}
+      PAT: ${{ parameters.pat }}
+
+    steps:
+
+      - task: UseNode@1
+        inputs:
+          version: '16.x'
+
+      - script: |
+          npm install
+        displayName: "Install dependencies"
+
+      # Ensure that steps only run if the array is not empty
+      - ${{ if ne(length(parameters.testCaseFiles), 0) }}: # Only run if testCaseFiles array is not empty
+        - ${{ each testCaseFile in parameters.testCaseFiles }}:
+            - powershell: |
+                Write-Output "Running test file: ${{ testCaseFile }}"
+                $env:TEST_CASE_ID="${{ testCaseFile }}" # Set the test case ID based on the file name
+                npx playwright test ${{ testCaseFile }}
+              displayName: "Run Playwright test for ${{ testCaseFile }}"
+              env:
+                TEST_PLAN_ID: $(TEST_PLAN_ID)
+                TEST_SUITE_ID: $(TEST_SUITE_ID)
+                PAT: $(PAT)
+                TEST_CASE_FILE: ${{ testCaseFile }}
+              continueOnError: true # Ensures the task doesn't fail the entire job when a test case fails
+
+      # Optional: Handle post-test actions like updating Azure DevOps test points
+      - powershell: |
+          Write-Output "All test cases are executed. Proceeding with post-test updates."
+        displayName: "Post-Test Actions"
