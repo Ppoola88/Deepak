@@ -1,0 +1,52 @@
+# Load the SharePoint snap-in
+Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue
+
+# Define the SharePoint site URL and source/destination folder paths
+$siteUrl = "https://msssharepointtest.healthpartners.com/CARS"
+$sourceFolderPath = "Folder Move Test Template"
+$destinationFolderPath = "Folder Move Test Template"
+
+# Connect to the SharePoint site
+$site = Get-SPSite $siteUrl
+$web = $site.RootWeb
+
+# Get all folders from the source directory
+$sourceLibrary = $web.GetFolder($sourceFolderPath)
+
+# Check if the source library exists
+if ($sourceLibrary.Exists) {
+    $folders = $sourceLibrary.SubFolders | Where-Object { -Not $_.Name.StartsWith("_") }
+
+    # Loop through each folder
+    foreach ($folder in $folders) {
+        # Get the first letter of the folder name
+        $firstLetter = $folder.Name.Substring(0, 1).ToUpper()
+
+        # Check if the first letter is between A and Z
+        if ($firstLetter -match '^[A-Z]$') {
+            # Create the target folder name (e.g., _FolderA)
+            $targetFolder = "_Folder" + "$firstLetter"
+
+            # Define the target folder path
+            $targetFolderPath = "$destinationFolderPath/$targetFolder"
+
+            # Create the destination folder if it doesn't exist
+            $destFolder = $web.GetFolder($targetFolderPath)
+            if (-Not $destFolder.Exists) {
+                $web.Folders.Add($targetFolderPath)
+                Write-Output "Created target folder: $targetFolderPath"
+            }
+
+            # Move the folder to the target location
+            $sourceFolder = $web.GetFolder("$sourceFolderPath/$($folder.Name)")
+            $sourceFolder.MoveTo("$targetFolderPath/$($folder.Name)")
+            Write-Output "Moved folder: $($folder.Name) to $targetFolderPath"
+        }
+    }
+} else {
+    Write-Error "Source library does not exist at path: $sourceFolderPath"
+}
+
+# Clean up
+$web.Dispose()
+$site.Dispose()
